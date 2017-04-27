@@ -12,7 +12,7 @@ HANDLE hEventoMemoria;
 HANDLE hSemaforoMemoria;
 HANDLE hMemoria;
 HANDLE hThread;
-Msg	*vistaPartilha;
+MemGeral *vistaPartilha;
 /* ----------------------------------------------------- */
 /*  PROTOTIPOS FUNÇÕES DAS THREADS						 */
 /* ----------------------------------------------------- */
@@ -22,7 +22,7 @@ DWORD WINAPI Escreve_Memoria(LPVOID param);
 /*  Função MAIN											 */
 /* ----------------------------------------------------- */
 int _tmain(int argc, LPTSTR argv[]) {
-	Msg aux;
+	MemGeral aux;
 	DWORD tid;
 
 	hMemoria = OpenFileMapping(FILE_MAP_ALL_ACCESS, FALSE, NOME_MEM_GERAL);
@@ -30,7 +30,8 @@ int _tmain(int argc, LPTSTR argv[]) {
 	vistaPartilha = (Msg*)MapViewOfFile(hMemoria, FILE_MAP_ALL_ACCESS, 0, 0, SIZEMENSAGEM);
 
 	hEventoMemoria = CreateEvent(NULL, TRUE, FALSE, EVNT_MEM_GERAL);
-	hSemaforoMemoria = CreateSemaphore(NULL, 2, 2, SEM_MEM_GERAL);
+	hSemaforoMemoria = CreateSemaphore(NULL, MAXCLIENTES, MAXCLIENTES, SEM_MEM_GERAL);
+
 	hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)Escreve_Memoria, NULL, 0, &tid);
 #ifdef UNICODE
 	_setmode(_fileno(stdin), _O_WTEXT);
@@ -41,12 +42,12 @@ int _tmain(int argc, LPTSTR argv[]) {
 		WaitForSingleObject(hEventoMemoria, INFINITE);
 		WaitForSingleObject(hSemaforoMemoria, INFINITE);
 
-		_tcscpy_s(aux.username, SIZE_USERNAME, vistaPartilha->username);
-		aux.codigoMsg = vistaPartilha->codigoMsg;
-		
+		aux.numClientes = vistaPartilha->numClientes;
+		aux.estadoJogo = vistaPartilha->estadoJogo;
+
 		ReleaseSemaphore(hSemaforoMemoria, 1, NULL);
 
-		_tprintf(TEXT("Nome: %s \tInteiro:%d"), aux.username, aux.codigoMsg);
+		_tprintf(TEXT("NumClientes: %d \t Estado:%d"), aux.numClientes, aux.estadoJogo);
 	}
 	
 	return 0;
@@ -55,38 +56,28 @@ int _tmain(int argc, LPTSTR argv[]) {
 /*----------------------------------------------------------------- */
 /*  THREAD - Função que escreve mensagens na memoria partilhada 	*/
 /* ---------------------------------------------------------------- */
-DWORD WINAPI Escreve_Memoria(LPVOID param) {
-	Msg aux;
+DWORD WINAPI Interage_Cliente(LPVOID param) {
+	MemGeral aux, aux2;
 	TCHAR buf[SIZE_USERNAME];
-	_tprintf(TEXT("Nome: "));
-	fflush(stdin);
-	_fgetts(buf, SIZE_USERNAME, stdin);
-	buf[_tcslen(buf) - 1] = '\0';
-	_tcscpy_s(aux.username, SIZE_USERNAME,buf);
-	aux.codigoMsg = CRIARJOGO;
-	//CADA VEZ QUE ESCREVE NA MEM PARTILHADA TEM DE FAZER ISTO
-	for (int i = 0; i < 2; i++) {
-		WaitForSingleObject(hSemaforoMemoria, INFINITE);
-	}
-	vistaPartilha->codigoMsg = aux.codigoMsg;
-	_tcscpy_s(vistaPartilha->username, SIZE_USERNAME, aux.username);
-	SetEvent(hEventoMemoria);
-	ResetEvent(hEventoMemoria);
-	ReleaseSemaphore(hSemaforoMemoria, 2, NULL);
+
 	while (1) {
 		_tprintf(TEXT("Inteiro: "));
 		fflush(stdin);
 		_fgetts(buf, SIZE_USERNAME, stdin);
 		buf[_tcslen(buf) - 1] = '\0';
-		aux.codigoMsg=_ttoi(buf);
-		for (int i = 0; i < 2; i++) {
-			WaitForSingleObject(hSemaforoMemoria, INFINITE);
-		}
-		vistaPartilha->codigoMsg = aux.codigoMsg;
-		_tcscpy_s(vistaPartilha->username, SIZE_USERNAME, aux.username);
-		SetEvent(hEventoMemoria);
-		ResetEvent(hEventoMemoria);
-		ReleaseSemaphore(hSemaforoMemoria, 2, NULL);
+		aux.estadoJogo = _ttoi(buf);
 
+		
 	}
+}
+
+void escreve_Memoria(MemGeral param) {
+	for (int i = 0; i < MAXCLIENTES; i++) {
+		WaitForSingleObject(hSemaforoMemoria, INFINITE);
+	}
+	vistaPartilha->estadoJogo = param.estadoJogo;
+	vistaPartilha->numClientes = param.numClientes;
+	SetEvent(hEventoMemoria);
+	ResetEvent(hEventoMemoria);
+	ReleaseSemaphore(hSemaforoMemoria, MAXCLIENTES, NULL);
 }
