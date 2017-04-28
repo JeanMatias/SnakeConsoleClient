@@ -16,8 +16,8 @@ MemGeral *vistaPartilha;
 /* ----------------------------------------------------- */
 /*  PROTOTIPOS FUNÇÕES DAS THREADS						 */
 /* ----------------------------------------------------- */
-//void Escreve_Memoria(LPVOID param);
-void Escreve_Memoria(MemGeral *param);
+void Escreve_Memoria(MemGeral param);
+DWORD WINAPI Interage_Cliente(LPVOID param);
 
 /* ----------------------------------------------------- */
 /*  Função MAIN											 */
@@ -28,7 +28,7 @@ int _tmain(int argc, LPTSTR argv[]) {
 
 	hMemoria = OpenFileMapping(FILE_MAP_ALL_ACCESS, FALSE, NOME_MEM_GERAL);
 
-	vistaPartilha = (Msg*)MapViewOfFile(hMemoria, FILE_MAP_ALL_ACCESS, 0, 0, SIZEMENSAGEM);
+	vistaPartilha = (MemGeral*)MapViewOfFile(hMemoria, FILE_MAP_ALL_ACCESS, 0, 0, SIZEMENSAGEM);
 
 	hEventoMemoria = CreateEvent(NULL, TRUE, FALSE, EVNT_MEM_GERAL);
 	hSemaforoMemoria = CreateSemaphore(NULL, MAXCLIENTES, MAXCLIENTES, SEM_MEM_GERAL);
@@ -38,7 +38,7 @@ int _tmain(int argc, LPTSTR argv[]) {
 		return -1;
 	}
 
-	hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)Escreve_Memoria, NULL, 0, &tid);
+	hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)Interage_Cliente, NULL, 0, &tid);
 #ifdef UNICODE
 	_setmode(_fileno(stdin), _O_WTEXT);
 	_setmode(_fileno(stdout), _O_WTEXT);
@@ -63,7 +63,7 @@ int _tmain(int argc, LPTSTR argv[]) {
 /*  THREAD - Função que escreve mensagens na memoria partilhada 	*/
 /* ---------------------------------------------------------------- */
 DWORD WINAPI Interage_Cliente(LPVOID param) {
-	MemGeral aux, aux2;
+	MemGeral aux;
 	TCHAR buf[SIZE_USERNAME];
 
 	while (1) {
@@ -73,16 +73,17 @@ DWORD WINAPI Interage_Cliente(LPVOID param) {
 		buf[_tcslen(buf) - 1] = '\0';
 		aux.estadoJogo = _ttoi(buf);
 
+		Escreve_Memoria(aux);
 		
 	}
 }
 
-void Escreve_Memoria(MemGeral* param) {
+void Escreve_Memoria(MemGeral param) {
 	for (int i = 0; i < MAXCLIENTES; i++) {
 		WaitForSingleObject(hSemaforoMemoria, INFINITE);
 	}
-	vistaPartilha->estadoJogo =  param->estadoJogo;
-	vistaPartilha->numClientes = param->numClientes;
+	vistaPartilha->estadoJogo =  param.estadoJogo;
+	
 	SetEvent(hEventoMemoria);
 	ResetEvent(hEventoMemoria);
 	ReleaseSemaphore(hSemaforoMemoria, MAXCLIENTES, NULL);
