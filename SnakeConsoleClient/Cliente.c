@@ -16,7 +16,8 @@ MemGeral *vistaPartilha;
 /* ----------------------------------------------------- */
 /*  PROTOTIPOS FUNÇÕES DAS THREADS						 */
 /* ----------------------------------------------------- */
-DWORD WINAPI Escreve_Memoria(LPVOID param);
+//void Escreve_Memoria(LPVOID param);
+void Escreve_Memoria(MemGeral *param);
 
 /* ----------------------------------------------------- */
 /*  Função MAIN											 */
@@ -31,6 +32,11 @@ int _tmain(int argc, LPTSTR argv[]) {
 
 	hEventoMemoria = CreateEvent(NULL, TRUE, FALSE, EVNT_MEM_GERAL);
 	hSemaforoMemoria = CreateSemaphore(NULL, MAXCLIENTES, MAXCLIENTES, SEM_MEM_GERAL);
+
+	if (hEventoMemoria == NULL || hSemaforoMemoria == NULL) {
+		_tprintf(TEXT("[Erro] Criação de objectos do Windows(%d)\n"), GetLastError());
+		return -1;
+	}
 
 	hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)Escreve_Memoria, NULL, 0, &tid);
 #ifdef UNICODE
@@ -71,12 +77,12 @@ DWORD WINAPI Interage_Cliente(LPVOID param) {
 	}
 }
 
-void escreve_Memoria(MemGeral param) {
+void Escreve_Memoria(MemGeral* param) {
 	for (int i = 0; i < MAXCLIENTES; i++) {
 		WaitForSingleObject(hSemaforoMemoria, INFINITE);
 	}
-	vistaPartilha->estadoJogo = param.estadoJogo;
-	vistaPartilha->numClientes = param.numClientes;
+	vistaPartilha->estadoJogo =  param->estadoJogo;
+	vistaPartilha->numClientes = param->numClientes;
 	SetEvent(hEventoMemoria);
 	ResetEvent(hEventoMemoria);
 	ReleaseSemaphore(hSemaforoMemoria, MAXCLIENTES, NULL);
