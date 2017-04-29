@@ -40,6 +40,7 @@ int _tmain(int argc, LPTSTR argv[]) {
 	if (hEventoMemoria == NULL || hSemaforoMemoria == NULL) {
 		_tprintf(TEXT("[Erro] Criação de objectos do Windows(%d)\n"), GetLastError());
 		return -1;
+
 	}
 	
 	/* ---- Definição Pipes ---- */
