@@ -13,6 +13,7 @@ HANDLE hSemaforoMemoria;
 HANDLE hMemoria;
 HANDLE hThread;
 MemGeral *vistaPartilha;
+
 /* ----------------------------------------------------- */
 /*  PROTOTIPOS FUNÇÕES DAS THREADS						 */
 /* ----------------------------------------------------- */
@@ -28,6 +29,7 @@ int _tmain(int argc, LPTSTR argv[]) {
 	TCHAR buffer[TAM_BUFFER];
 	int var_inicio=0;
 
+	/* ---- Definição Memória Partilhada ---- */
 	hMemoria = OpenFileMapping(FILE_MAP_ALL_ACCESS, FALSE, NOME_MEM_GERAL);
 
 	vistaPartilha = (MemGeral*)MapViewOfFile(hMemoria, FILE_MAP_ALL_ACCESS, 0, 0, SIZEMENSAGEM);
@@ -40,21 +42,23 @@ int _tmain(int argc, LPTSTR argv[]) {
 		return -1;
 	}
 	
+	/* ---- Definição Pipes ---- */
+
+	
 
 #ifdef UNICODE
 	_setmode(_fileno(stdin), _O_WTEXT);
 	_setmode(_fileno(stdout), _O_WTEXT);
 #endif
 	
-	// Entrada inicial do cliente
+	/* ---- Entrada inicial do cliente ---- */
 		_tprintf(TEXT("\n\n\t 1 - Ligar servidor local. \n\n\t 2 - Ligar servidor remoto. \n\n\t > "));
 		fflush(stdin);
 		_fgetts(buffer, SIZE_USERNAME, stdin);
 		buffer[_tcslen(buffer) - 1] = '\0';
 		var_inicio = _ttoi(buffer);
 
-
-	
+	/* ---- Entrada em servidor local - Memória partilhada ---- */
 	if (var_inicio == 1) {
 	
 	hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)Interage_Cliente, NULL, 0, &tid);
@@ -71,10 +75,11 @@ int _tmain(int argc, LPTSTR argv[]) {
 				_tprintf(TEXT("NumClientes: %d \t Estado:%d"), aux.numClientes, aux.estadoJogo);
 			}
 	}
+	/* ---- Entrada em servidor remoto - Pipes ---- */
 	else if(var_inicio == 2){
 	
 				_tprintf(TEXT("Lá Lá Lá ....   em manutenção....."));
-				Sleep(1000);
+				_gettch();
 	}
 		
 	return 0;
