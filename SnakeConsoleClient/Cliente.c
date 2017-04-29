@@ -41,6 +41,7 @@ int _tmain(int argc, LPTSTR argv[]) {
 		_tprintf(TEXT("[Erro] Criação de objectos do Windows(%d)\n"), GetLastError());
 		return -1;
 	}
+
 	
 	/* ---- Definição Pipes ---- */
 
