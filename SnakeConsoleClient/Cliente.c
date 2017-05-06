@@ -24,7 +24,11 @@ DWORD WINAPI Interage_Cliente(LPVOID param);
 /*  PROTOTIPOS FUNÇÕES PARA A DLL						 */
 /* ----------------------------------------------------- */
 void Escreve_Memoria(MemGeral param);
-int Cria_Jogo(MemGeral param);
+int Cria_Jogo(MemGeral param, int numJogadores);
+void chamaCriaJogo(void);
+void getMapa(MemGeral *param);
+void imprimeMapa(MemGeral *param);
+void leMemoriaPartilhada(MemGeral* param);
 
 /* ----------------------------------------------------- */
 /*  VARIAVEIS GLOBAIS PARA A DLL						 */
@@ -105,45 +109,38 @@ int _tmain(int argc, LPTSTR argv[]) {
 /*  THREAD - Função que escreve mensagens na memoria partilhada 	*/
 /* ---------------------------------------------------------------- */
 DWORD WINAPI Interage_Cliente(LPVOID param) {
-	MemGeral aux;
+	
 	TCHAR buf[SIZE_USERNAME];
-
-	_tprintf(TEXT("Inteiro: "));
-	fflush(stdin);
-	_fgetts(buf, SIZE_USERNAME, stdin);
-	buf[_tcslen(buf) - 1] = '\0';
-	aux.estadoJogo = _ttoi(buf);
+	int var_inicio;
+	MemGeral aux;
 
 	_tprintf(TEXT("Nome: "));
 	fflush(stdin);
-	_fgetts(buf, SIZE_USERNAME, stdin);
-	buf[_tcslen(buf) - 1] = '\0';
-	_tcscpy_s(aux.mensagem.username, SIZE_USERNAME, buf);
-	aux.mensagem.codigoMsg = CRIARJOGO;
-	_tcscpy_s(aux.criador, SIZE_USERNAME, aux.mensagem.username);
-
-	aux.config.A = NUMAUTOSNAKE;
-	aux.config.C = COLUNAS;
-	aux.config.L = LINHAS;
-	aux.config.N = 1;
-	aux.config.O = NUMOBJETOS;
-	aux.config.T = TAMANHOSNAKE;
-
-	if (Cria_Jogo(aux)) {
-		_tprintf(TEXT("CRIADO "));
-	}
-	else {
-		_tprintf(TEXT("NÂO CRIADO "));
-	}
+	_fgetts(username1, SIZE_USERNAME, stdin);
+	username1[_tcslen(username1) - 1] = '\0';
 
 	while (1) {
-		_tprintf(TEXT("Inteiro: "));
+
+		_tprintf(TEXT("\n\n\t 1 -Criar Jogo. \n\n\t 2 - Associar a Jogo. \n\n\t > "));
 		fflush(stdin);
 		_fgetts(buf, SIZE_USERNAME, stdin);
 		buf[_tcslen(buf) - 1] = '\0';
-		aux.estadoJogo = _ttoi(buf);
+		var_inicio = _ttoi(buf);
 
-		Escreve_Memoria(aux);
+		switch (var_inicio)
+		{
+		case CRIACAOJOGO:chamaCriaJogo();
+			//Sleep(200);
+			_tprintf(TEXT("\n"));
+			getMapa(&aux);
+			leMemoriaPartilhada(&aux);
+			imprimeMapa(&aux);
+			break;
+		case ASSOCIACAOJOGO:_tprintf(TEXT("\n\n\t A fazer "));
+			break;
+		default:
+			break;
+		}
 		
 	}
 }
@@ -159,7 +156,60 @@ void Escreve_Memoria(MemGeral param) {
 	ReleaseSemaphore(hSemaforoMemoria, MAXCLIENTES, NULL);
 }
 
-int Cria_Jogo(MemGeral param) {
+void chamaCriaJogo(void) {
+	MemGeral aux;
+	_tcscpy_s(aux.mensagem.username, SIZE_USERNAME, username1);
+	aux.mensagem.codigoMsg = CRIARJOGO;
+	_tcscpy_s(aux.criador, SIZE_USERNAME, aux.mensagem.username);
+
+	aux.config.A = NUMAUTOSNAKE;
+	aux.config.C = COLUNAS;
+	aux.config.L = LINHAS;
+	aux.config.N = 1;
+	aux.config.O = NUMOBJETOS;
+	aux.config.T = TAMANHOSNAKE;
+
+	if (Cria_Jogo(aux, 1)) {
+		_tprintf(TEXT("CRIADO "));
+	}
+	else {
+		_tprintf(TEXT("NÂO CRIADO "));
+	}
+}
+
+void getMapa(MemGeral *param) {
+	WaitForSingleObject(hSemaforoMemoria, INFINITE);
+	for (int i = 0; i < vistaPartilhaGeral->config.L;i++) {
+		for (int j = 0; j < vistaPartilhaGeral->config.C;j++) {
+			param->mapa[i][j] = vistaPartilhaGeral->mapa[i][j];
+		}
+	}
+	ReleaseSemaphore(hSemaforoMemoria, 1, NULL);
+}
+
+void leMemoriaPartilhada(MemGeral* param) {
+
+	WaitForSingleObject(hSemaforoMemoria, INFINITE);
+
+	param->estadoJogo = vistaPartilhaGeral->estadoJogo;
+	param->mensagem.codigoMsg = vistaPartilhaGeral->mensagem.codigoMsg;
+	_tcscpy_s(param->mensagem.username, SIZE_USERNAME, vistaPartilhaGeral->mensagem.username);
+	param->config.C = vistaPartilhaGeral->config.C;
+	param->config.L = vistaPartilhaGeral->config.L;
+
+	ReleaseSemaphore(hSemaforoMemoria, 1, NULL);
+}
+
+void imprimeMapa(MemGeral *param) {
+	for (int i = 0; i < param->config.L; i++) {
+		for (int j = 0; j < param->config.C; j++) {
+			_tprintf(TEXT("%c "), param->mapa[i][j]);
+		}
+		_tprintf(TEXT("\n"));
+	}
+}
+
+int Cria_Jogo(MemGeral param, int numJogadores) {
 	WaitForSingleObject(hSemaforoMemoria, INFINITE);
 	if (!(vistaPartilhaGeral->estadoJogo == CRIACAOJOGO)) {
 		return 0;
@@ -173,6 +223,7 @@ int Cria_Jogo(MemGeral param) {
 	vistaPartilhaGeral->mensagem.codigoMsg = param.mensagem.codigoMsg;
 	_tcscpy_s(vistaPartilhaGeral->mensagem.username, SIZE_USERNAME, param.mensagem.username);
 	_tcscpy_s(vistaPartilhaGeral->criador, SIZE_USERNAME, param.criador);
+	vistaPartilhaGeral->vagasJogadores = param.config.N - numJogadores;
 
 	SetEvent(hEventoMemoria);
 	ResetEvent(hEventoMemoria);
