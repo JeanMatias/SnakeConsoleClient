@@ -3,16 +3,12 @@
 #include <io.h>
 #include <fcntl.h>
 #include <stdio.h>
-#include "../../SnakeServer/SnakeServer/TiposConstantes.h"
+#include "..\..\DLL\DLL\DLL.h"
 
 /* ----------------------------------------------------- */
 /*  VARIÁVEIS GLOBAIS									 */
 /* ----------------------------------------------------- */
-HANDLE hEventoMemoria;
-HANDLE hSemaforoMemoria;
-HANDLE hMemoria;
 HANDLE hThread;
-MemGeral *vistaPartilhaGeral;
 
 /* ----------------------------------------------------- */
 /*  PROTOTIPOS FUNÇÕES DAS THREADS						 */
@@ -21,14 +17,11 @@ DWORD WINAPI Interage_Cliente(LPVOID param);
 
 
 /* ----------------------------------------------------- */
-/*  PROTOTIPOS FUNÇÕES PARA A DLL						 */
+/*  PROTOTIPOS FUNÇÕES									 */
 /* ----------------------------------------------------- */
-void Escreve_Memoria(MemGeral param);
-int Cria_Jogo(MemGeral param, int numJogadores);
 void chamaCriaJogo(void);
-void getMapa(MemGeral *param);
 void imprimeMapa(MemGeral *param);
-void leMemoriaPartilhada(MemGeral* param);
+
 
 /* ----------------------------------------------------- */
 /*  VARIAVEIS GLOBAIS PARA A DLL						 */
@@ -49,18 +42,21 @@ int _tmain(int argc, LPTSTR argv[]) {
 	int var_inicio=0;
 
 	/* ---- Definição Memória Partilhada ---- */
+	/*
 	hMemoria = OpenFileMapping(FILE_MAP_ALL_ACCESS, FALSE, NOME_MEM_GERAL);
 
 	vistaPartilhaGeral = (MemGeral*)MapViewOfFile(hMemoria, FILE_MAP_ALL_ACCESS, 0, 0, SIZE_MEM_GERAL);
 
 	hEventoMemoria = CreateEvent(NULL, TRUE, FALSE, EVNT_MEM_GERAL);
-	hSemaforoMemoria = CreateSemaphore(NULL, MAXCLIENTES, MAXCLIENTES, SEM_MEM_GERAL);
-
-	if (hEventoMemoria == NULL || hSemaforoMemoria == NULL) {
+	hSemMemoria = CreateSemaphore(NULL, MAXCLIENTES, MAXCLIENTES, SEM_MEM_GERAL);
+	*/
+	preparaMemoriaPartilhada();
+	/*
+	if (hEventoMemoria == NULL || hSemMemoria == NULL) {
 		_tprintf(TEXT("[Erro] Criação de objectos do Windows(%d)\n"), GetLastError());
 		return -1;
 	}
-
+	*/
 	
 	/* ---- Definição Pipes ---- */
 
@@ -83,14 +79,8 @@ int _tmain(int argc, LPTSTR argv[]) {
 
 		hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)Interage_Cliente, NULL, 0, &tid);
 			while (1) {
-				WaitForSingleObject(hEventoMemoria, INFINITE);
-				WaitForSingleObject(hSemaforoMemoria, INFINITE);
-
-				aux.mensagem.codigoMsg = vistaPartilhaGeral->mensagem.codigoMsg;
-				_tcscpy_s(aux.mensagem.username, SIZE_USERNAME, vistaPartilhaGeral->mensagem.username);
-				aux.estadoJogo = vistaPartilhaGeral->estadoJogo;
-
-				ReleaseSemaphore(hSemaforoMemoria, 1, NULL);
+				esperaPorActualizacao();
+				leMemoriaPartilhada(&aux);
 
 				_tprintf(TEXT("CLIENTE: %s \t Codigo:%d\tEstado:%d"), aux.mensagem.username, aux.mensagem.codigoMsg, aux.estadoJogo);
 			}
@@ -130,7 +120,7 @@ DWORD WINAPI Interage_Cliente(LPVOID param) {
 		switch (var_inicio)
 		{
 		case CRIACAOJOGO:chamaCriaJogo();
-			//Sleep(200);
+			Sleep(200);
 			_tprintf(TEXT("\n"));
 			getMapa(&aux);
 			leMemoriaPartilhada(&aux);
@@ -143,17 +133,6 @@ DWORD WINAPI Interage_Cliente(LPVOID param) {
 		}
 		
 	}
-}
-
-void Escreve_Memoria(MemGeral param) {
-	for (int i = 0; i < MAXCLIENTES; i++) {
-		WaitForSingleObject(hSemaforoMemoria, INFINITE);
-	}
-	vistaPartilhaGeral->estadoJogo =  param.estadoJogo;
-	
-	SetEvent(hEventoMemoria);
-	ResetEvent(hEventoMemoria);
-	ReleaseSemaphore(hSemaforoMemoria, MAXCLIENTES, NULL);
 }
 
 void chamaCriaJogo(void) {
@@ -177,56 +156,11 @@ void chamaCriaJogo(void) {
 	}
 }
 
-void getMapa(MemGeral *param) {
-	WaitForSingleObject(hSemaforoMemoria, INFINITE);
-	for (int i = 0; i < vistaPartilhaGeral->config.L;i++) {
-		for (int j = 0; j < vistaPartilhaGeral->config.C;j++) {
-			param->mapa[i][j] = vistaPartilhaGeral->mapa[i][j];
-		}
-	}
-	ReleaseSemaphore(hSemaforoMemoria, 1, NULL);
-}
-
-void leMemoriaPartilhada(MemGeral* param) {
-
-	WaitForSingleObject(hSemaforoMemoria, INFINITE);
-
-	param->estadoJogo = vistaPartilhaGeral->estadoJogo;
-	param->mensagem.codigoMsg = vistaPartilhaGeral->mensagem.codigoMsg;
-	_tcscpy_s(param->mensagem.username, SIZE_USERNAME, vistaPartilhaGeral->mensagem.username);
-	param->config.C = vistaPartilhaGeral->config.C;
-	param->config.L = vistaPartilhaGeral->config.L;
-
-	ReleaseSemaphore(hSemaforoMemoria, 1, NULL);
-}
-
 void imprimeMapa(MemGeral *param) {
 	for (int i = 0; i < param->config.L; i++) {
 		for (int j = 0; j < param->config.C; j++) {
-			_tprintf(TEXT("%c "), param->mapa[i][j]);
+			_tprintf(TEXT("%c"), param->mapa[i][j]);
 		}
 		_tprintf(TEXT("\n"));
 	}
-}
-
-int Cria_Jogo(MemGeral param, int numJogadores) {
-	WaitForSingleObject(hSemaforoMemoria, INFINITE);
-	if (!(vistaPartilhaGeral->estadoJogo == CRIACAOJOGO)) {
-		return 0;
-	}
-	for (int i = 0; i < MAXCLIENTES-1; i++) {
-		WaitForSingleObject(hSemaforoMemoria, INFINITE);
-	}
-
-	vistaPartilhaGeral->estadoJogo = ASSOCIACAOJOGO;
-	vistaPartilhaGeral->config = param.config;
-	vistaPartilhaGeral->mensagem.codigoMsg = param.mensagem.codigoMsg;
-	_tcscpy_s(vistaPartilhaGeral->mensagem.username, SIZE_USERNAME, param.mensagem.username);
-	_tcscpy_s(vistaPartilhaGeral->criador, SIZE_USERNAME, param.criador);
-	vistaPartilhaGeral->vagasJogadores = param.config.N - numJogadores;
-
-	SetEvent(hEventoMemoria);
-	ResetEvent(hEventoMemoria);
-	ReleaseSemaphore(hSemaforoMemoria, MAXCLIENTES, NULL);
-	return 1;
 }
