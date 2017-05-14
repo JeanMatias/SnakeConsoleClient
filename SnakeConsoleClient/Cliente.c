@@ -3,6 +3,7 @@
 #include <io.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <conio.h>
 #include "..\..\DLL\DLL\DLL.h"
 
 /* ----------------------------------------------------- */
@@ -14,6 +15,7 @@ HANDLE hThread;
 /*  PROTOTIPOS FUNÇÕES DAS THREADS						 */
 /* ----------------------------------------------------- */
 DWORD WINAPI Interage_Cliente(LPVOID param);
+DWORD WINAPI interageJogo(LPVOID param);
 
 
 /* ----------------------------------------------------- */
@@ -21,6 +23,7 @@ DWORD WINAPI Interage_Cliente(LPVOID param);
 /* ----------------------------------------------------- */
 void chamaCriaJogo(void);
 void imprimeMapa(MemGeral *param);
+void chamaAssociaJogo(void);
 
 
 /* ----------------------------------------------------- */
@@ -82,7 +85,7 @@ int _tmain(int argc, LPTSTR argv[]) {
 				esperaPorActualizacao();
 				leMemoriaPartilhada(&aux);
 
-				_tprintf(TEXT("CLIENTE: %s \t Codigo:%d\tEstado:%d"), aux.mensagem.username, aux.mensagem.codigoMsg, aux.estadoJogo);
+				//_tprintf(TEXT("CLIENTE: %s \t Codigo:%d\tEstado:%d"), aux.mensagem.username, aux.mensagem.codigoMsg, aux.estadoJogo);
 			}
 	}
 	/* ---- Entrada em servidor remoto - Pipes ---- */
@@ -103,6 +106,7 @@ DWORD WINAPI Interage_Cliente(LPVOID param) {
 	TCHAR buf[SIZE_USERNAME];
 	int var_inicio;
 	MemGeral aux;
+	DWORD tid;
 
 	_tprintf(TEXT("Nome: "));
 	fflush(stdin);
@@ -110,8 +114,8 @@ DWORD WINAPI Interage_Cliente(LPVOID param) {
 	username1[_tcslen(username1) - 1] = '\0';
 
 	while (1) {
-
-		_tprintf(TEXT("\n\n\t 1 -Criar Jogo. \n\n\t 2 - Associar a Jogo. \n\n\t > "));
+		system("cls");
+		_tprintf(TEXT("\n\n\t 1 - Criar Jogo. \n\n\t 2 - Associar a Jogo. \n\n\t 8 - Iniciar Jogo. \n\n\t> "));
 		fflush(stdin);
 		_fgetts(buf, SIZE_USERNAME, stdin);
 		buf[_tcslen(buf) - 1] = '\0';
@@ -120,19 +124,56 @@ DWORD WINAPI Interage_Cliente(LPVOID param) {
 		switch (var_inicio)
 		{
 		case CRIACAOJOGO:chamaCriaJogo();
-			Sleep(200);
-			_tprintf(TEXT("\n"));
-			getMapa(&aux);
+			break;
+		case ASSOCIACAOJOGO:chamaAssociaJogo();
+			break;
+		case INICIARJOGO:
+			IniciaJogo(username1);
+			system("cls");
 			leMemoriaPartilhada(&aux);
-			imprimeMapa(&aux);
-			break;
-		case ASSOCIACAOJOGO:_tprintf(TEXT("\n\n\t A fazer "));
-			break;
+			hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)interageJogo, NULL, 0, &tid);
+			while (1) {
+				esperaPorActualizacao();
+				system("cls");
+				getMapa(&aux);
+				imprimeMapa(&aux);
+			}
+			
 		default:
 			break;
 		}
 		
 	}
+}
+
+DWORD WINAPI interageJogo(LPVOID param) {
+	TCHAR tecla;
+	BOOLEAN continua = TRUE;
+
+	while (continua) {
+		tecla = _gettch();
+		switch (tecla)
+		{
+		case 'W':
+		case 'w':mudaDirecao(CIMA);
+			break;
+		case 'S':
+		case 's':mudaDirecao(BAIXO);
+			break;
+		case 'A':
+		case 'a':mudaDirecao(ESQUERDA);
+			break;
+		case 'D':
+		case 'd':mudaDirecao(DIREITA);
+			break;
+		case 'P':
+		case 'p':continua = FALSE;
+			break;
+		default:
+			break;
+		}
+	}
+	
 }
 
 void chamaCriaJogo(void) {
@@ -154,6 +195,10 @@ void chamaCriaJogo(void) {
 	else {
 		_tprintf(TEXT("NÂO CRIADO "));
 	}
+}
+
+void chamaAssociaJogo(void) {
+	AssociaJogo(1, username1, NULL);
 }
 
 void imprimeMapa(MemGeral *param) {

@@ -149,9 +149,6 @@
     <ClCompile Include="Cliente.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\SnakeServer\SnakeServer\TiposConstantes.h" />
-  </ItemGroup>
-  <ItemGroup>
     <Library Include="..\Debug\DLL.lib" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
