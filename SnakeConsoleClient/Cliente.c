@@ -30,7 +30,7 @@ void chamaAssociaJogo(void);
 /*  VARIAVEIS GLOBAIS PARA A DLL						 */
 /* ----------------------------------------------------- */
 int numJogadores = 1;  //Num Jogadores a jogar nesta maquina
-int indiceCobras;		//Indice na memoria Dinamica em que se encontram a primeira cobra desta maquina.
+int indiceCobras = 0;		//Indice na memoria Dinamica em que se encontram a primeira cobra desta maquina.
 TCHAR username1[SIZE_USERNAME];	//Nome do Jogador 1 desta Maquina
 TCHAR username2[SIZE_USERNAME];	//Nome do Jogador 2 desta Maquina
 
@@ -44,22 +44,7 @@ int _tmain(int argc, LPTSTR argv[]) {
 	TCHAR buffer[TAM_BUFFER];
 	int var_inicio=0;
 
-	/* ---- Definição Memória Partilhada ---- */
-	/*
-	hMemoria = OpenFileMapping(FILE_MAP_ALL_ACCESS, FALSE, NOME_MEM_GERAL);
-
-	vistaPartilhaGeral = (MemGeral*)MapViewOfFile(hMemoria, FILE_MAP_ALL_ACCESS, 0, 0, SIZE_MEM_GERAL);
-
-	hEventoMemoria = CreateEvent(NULL, TRUE, FALSE, EVNT_MEM_GERAL);
-	hSemMemoria = CreateSemaphore(NULL, MAXCLIENTES, MAXCLIENTES, SEM_MEM_GERAL);
-	*/
 	preparaMemoriaPartilhada();
-	/*
-	if (hEventoMemoria == NULL || hSemMemoria == NULL) {
-		_tprintf(TEXT("[Erro] Criação de objectos do Windows(%d)\n"), GetLastError());
-		return -1;
-	}
-	*/
 	
 	/* ---- Definição Pipes ---- */
 
@@ -108,10 +93,15 @@ DWORD WINAPI Interage_Cliente(LPVOID param) {
 	MemGeral aux;
 	DWORD tid;
 
-	_tprintf(TEXT("Nome: "));
+	_tprintf(TEXT("Nome 1: "));
 	fflush(stdin);
 	_fgetts(username1, SIZE_USERNAME, stdin);
 	username1[_tcslen(username1) - 1] = '\0';
+
+	_tprintf(TEXT("Nome 2: "));
+	fflush(stdin);
+	_fgetts(username2, SIZE_USERNAME, stdin);
+	username1[_tcslen(username2) - 1] = '\0';
 
 	while (1) {
 		system("cls");
@@ -124,6 +114,8 @@ DWORD WINAPI Interage_Cliente(LPVOID param) {
 		switch (var_inicio)
 		{
 		case CRIACAOJOGO:chamaCriaJogo();
+			Sleep(500);
+			chamaAssociaJogo();
 			break;
 		case ASSOCIACAOJOGO:chamaAssociaJogo();
 			break;
@@ -155,16 +147,28 @@ DWORD WINAPI interageJogo(LPVOID param) {
 		switch (tecla)
 		{
 		case 'W':
-		case 'w':mudaDirecao(CIMA);
+		case 'w':mudaDirecao(CIMA,indiceCobras);
 			break;
 		case 'S':
-		case 's':mudaDirecao(BAIXO);
+		case 's':mudaDirecao(BAIXO, indiceCobras);
 			break;
 		case 'A':
-		case 'a':mudaDirecao(ESQUERDA);
+		case 'a':mudaDirecao(ESQUERDA, indiceCobras);
 			break;
 		case 'D':
-		case 'd':mudaDirecao(DIREITA);
+		case 'd':mudaDirecao(DIREITA, indiceCobras);
+			break;
+		case 'I':
+		case 'i':mudaDirecao(CIMA, indiceCobras+1);
+			break;
+		case 'K':
+		case 'k':mudaDirecao(BAIXO, indiceCobras+1);
+			break;
+		case 'J':
+		case 'j':mudaDirecao(ESQUERDA, indiceCobras+1);
+			break;
+		case 'L':
+		case 'l':mudaDirecao(DIREITA, indiceCobras+1);
 			break;
 		case 'P':
 		case 'p':continua = FALSE;
@@ -177,19 +181,17 @@ DWORD WINAPI interageJogo(LPVOID param) {
 }
 
 void chamaCriaJogo(void) {
-	MemGeral aux;
-	_tcscpy_s(aux.mensagem.username, SIZE_USERNAME, username1);
-	aux.mensagem.codigoMsg = CRIARJOGO;
-	_tcscpy_s(aux.criador, SIZE_USERNAME, aux.mensagem.username);
+	ConfigInicial aux;
+	
 
-	aux.config.A = NUMAUTOSNAKE;
-	aux.config.C = COLUNAS;
-	aux.config.L = LINHAS;
-	aux.config.N = 1;
-	aux.config.O = NUMOBJETOS;
-	aux.config.T = TAMANHOSNAKE;
+	aux.A = NUMAUTOSNAKE;
+	aux.C = COLUNAS;
+	aux.L = LINHAS;
+	aux.N = 2;
+	aux.O = NUMOBJETOS;
+	aux.T = TAMANHOSNAKE;
 
-	if (Cria_Jogo(aux, 1)) {
+	if (Cria_Jogo(aux,username1)) {
 		_tprintf(TEXT("CRIADO "));
 	}
 	else {
@@ -198,7 +200,7 @@ void chamaCriaJogo(void) {
 }
 
 void chamaAssociaJogo(void) {
-	AssociaJogo(1, username1, NULL);
+	AssociaJogo(2, username1, username2,&indiceCobras);
 }
 
 void imprimeMapa(MemGeral *param) {
