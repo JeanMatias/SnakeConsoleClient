@@ -119,9 +119,16 @@ DWORD WINAPI Interage_Cliente(LPVOID param) {
 			chamaAssociaJogo(username1,ASSOCIAR_JOGADOR1);
 			break;
 		case ASSOCIACAOJOGO:
+			
 			if (numJogadores == 1) {
+				//apresenta dialog
 				chamaAssociaJogo(username2, ASSOCIAR_JOGADOR2);
 			}
+			else if(numJogadores == 0)
+				chamaAssociaJogo(username1, ASSOCIAR_JOGADOR1);
+			else 
+				//apresenta dialog a avisar que não se pode associar mais gente
+
 			
 			break;
 		case 3:
@@ -190,7 +197,7 @@ void chamaCriaJogo(void) {
 	aux.A = NUMAUTOSNAKE;
 	aux.C = COLUNAS;
 	aux.L = LINHAS;
-	aux.N = 2;
+	aux.N = 1;
 	aux.O = NUMOBJETOS;
 	aux.T = TAMANHOSNAKE;
 
@@ -210,6 +217,26 @@ void imprimeMapa() {
 			case PAREDE:_tprintf(TEXT("#"));
 				break;
 			case ESPACOVAZIO:_tprintf(TEXT(" "));
+				break;
+			case ALIMENTO:_tprintf(TEXT("A"));
+				break;
+			case GELO:_tprintf(TEXT("I"));
+				break;
+			case GRANADA:_tprintf(TEXT("G"));
+				break;
+			case VODKA:_tprintf(TEXT("V"));
+				break;
+			case OLEO:_tprintf(TEXT("O"));
+				break;
+			case COLA:_tprintf(TEXT("C"));
+				break;
+			case O_VODKA:_tprintf(TEXT("Õ"));
+				break;
+			case O_OLEO:_tprintf(TEXT("Ö"));
+				break;
+			case O_COLA:_tprintf(TEXT("Ó"));
+				break;
+			case SURPRESA:_tprintf(TEXT("S"));
 				break;
 			default:_tprintf(TEXT("%d"),mapa[i][j]/100-1);
 				break;
