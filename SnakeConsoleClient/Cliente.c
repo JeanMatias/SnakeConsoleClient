@@ -106,7 +106,7 @@ DWORD WINAPI Interage_Cliente(LPVOID param) {
 
 	while (1) {
 		system("cls");
-		_tprintf(TEXT("\n\n\t 1 - Criar Jogo. \n\n\t 2 - Associar a Jogo. \n\n\t 12 - Iniciar Jogo. \n\n\t> "));
+		_tprintf(TEXT("\n\n\t 1 - Criar Jogo. \n\n\t 2 - Associar a Jogo. \n\n\t 3 - Iniciar Jogo. \n\n\t> "));
 		fflush(stdin);
 		_fgetts(buf, SIZE_USERNAME, stdin);
 		buf[_tcslen(buf) - 1] = '\0';
@@ -124,7 +124,7 @@ DWORD WINAPI Interage_Cliente(LPVOID param) {
 			}
 			
 			break;
-		case INICIARJOGO:
+		case 3:
 			pede_IniciaJogo(pId);
 			esperaPorActualizacaoMapa();
 			getLimitesMapa(&linhas, &colunas);
@@ -152,28 +152,28 @@ DWORD WINAPI interageJogo(LPVOID param) {
 		switch (tecla)
 		{
 		case 'W':
-		case 'w':mudaDirecao(CIMA_JOGADOR1,pId);
+		case 'w':mudaDirecao(CIMA,pId, JOGADOR1);
 			break;
 		case 'S':
-		case 's':mudaDirecao(BAIXO_JOGADOR1, pId);
+		case 's':mudaDirecao(BAIXO, pId, JOGADOR1);
 			break;
 		case 'A':
-		case 'a':mudaDirecao(ESQUERDA_JOGADOR1, pId);
+		case 'a':mudaDirecao(ESQUERDA, pId, JOGADOR1);
 			break;
 		case 'D':
-		case 'd':mudaDirecao(DIREITA_JOGADOR1, pId);
+		case 'd':mudaDirecao(DIREITA, pId, JOGADOR1);
 			break;
 		case 'I':
-		case 'i':mudaDirecao(CIMA_JOGADOR2, pId);
+		case 'i':mudaDirecao(CIMA, pId, JOGADOR2);
 			break;
 		case 'K':
-		case 'k':mudaDirecao(BAIXO_JOGADOR2, pId);
+		case 'k':mudaDirecao(BAIXO, pId, JOGADOR2);
 			break;
 		case 'J':
-		case 'j':mudaDirecao(ESQUERDA_JOGADOR2, pId);
+		case 'j':mudaDirecao(ESQUERDA, pId, JOGADOR2);
 			break;
 		case 'L':
-		case 'l':mudaDirecao(DIREITA_JOGADOR2, pId);
+		case 'l':mudaDirecao(DIREITA, pId, JOGADOR2);
 			break;
 		case 'P':
 		case 'p':continua = FALSE;
@@ -190,7 +190,7 @@ void chamaCriaJogo(void) {
 	aux.A = NUMAUTOSNAKE;
 	aux.C = COLUNAS;
 	aux.L = LINHAS;
-	aux.N = 1;
+	aux.N = 2;
 	aux.O = NUMOBJETOS;
 	aux.T = TAMANHOSNAKE;
 
